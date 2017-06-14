@@ -1,0 +1,119 @@
+---
+- name: Apt install deps
+  become: True
+  apt:
+    name: "{{ item }}"
+    state:  present
+  with_items:
+    - python-virtualenv
+    - python-dev 
+    - libffi-dev 
+    - libssl-dev 
+    - build-essential
+    - supervisor
+
+- name: Create app dir
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /home/vagrant/flask_app/
+    - /home/vagrant/flask_app/static/
+
+- name: Create requirements.txt
+  copy:
+    dest: /home/vagrant/flask_app/requirements.txt
+    content: |
+      Flask==0.12
+      gunicorn==19.7
+
+- name: Create app.py
+  copy:
+    dest: /home/vagrant/flask_app/app.py
+    content: |
+      from flask import Flask, jsonify
+
+      app = Flask(__name__)
+
+
+      @app.route('/')
+      def index():
+          return 'Flask is running!'
+
+
+      @app.route('/data')
+      def names():
+          data = {"names": ["John", "Jacob", "Julie", "Jennifer"]}
+          return jsonify(data)
+
+
+      if __name__ == '__main__':
+          app.run(
+            host='0.0.0.0',
+            port=5000,
+          )
+
+- name: Create static/index.html
+  copy:
+    dest: /home/vagrant/flask_app/static/index.html
+    content: >
+      <h1>Test!</h1>
+
+- name: Create run_app.bash
+  copy:
+    mode: '0777'
+    dest: /home/vagrant/flask_app/run_app.bash
+    content: |
+      #!/usr/bin/env bash
+      [[ -d ./venv/ ]] || {
+        virtualenv venv/
+        source ./venv/bin/activate
+        pip install -U setuptools
+        pip install -U pip
+        pip install -r requirements.txt
+        deactivate
+      }
+
+
+      source ./venv/bin/activate
+      pip install -r requirements.txt
+
+      run_flask() {
+        export FLASK_APP=app.py
+        export FLASK_DEBUG=1
+        flask run \
+          -p 5000 \
+          -h '0.0.0.0'
+      }
+
+      run_gunicorn() {
+        gunicorn app:app -b 0.0.0.0:8000
+      }
+
+      #run_flask
+      run_gunicorn
+
+- name: Create supervisor conf
+  become: True
+  copy:
+    dest: /etc/supervisor/conf.d/flask_app.conf
+    content: |
+      [program:flask_app]
+      #command = gunicorn app:app -b localhost:80
+      command = bash run_app.bash
+      directory = /home/vagrant/flask_app
+      user = vagrant
+  register: supervisor_conf
+
+- name: Reload supervisor if conf changed
+  become: True
+  shell: |
+    supervisorctl reread
+    supervisorctl update
+  when: ( supervisor_conf | changed )
+
+- name: Start the app
+  become: True
+  supervisorctl:
+    name: flask_app
+    state: started

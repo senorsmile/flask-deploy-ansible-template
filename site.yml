@@ -1,4 +1,10 @@
 ---
 - hosts: web
   roles:
+    - role: python2_install
+      tags: python2_install
 
+    - role: flask_app
+      tags:
+        - apps
+        - flask_app
