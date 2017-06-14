@@ -1,5 +1,10 @@
 ---
 web:
+  vars:
+    ansible_connection: ssh
   hosts:
     flaskapp:
-      ansible_host: 192.168.72.201
+      ansible_host:         192.168.72.201
+      ansible_user:         vagrant
+      ansible_ssh_pass:     vagrant
+      ansible_become_pass:  vagrant
