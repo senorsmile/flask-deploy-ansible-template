@@ -1,4 +1,5 @@
-
+# Ansible
+*.retry
 
 # OS-specific
 .DS_Store
