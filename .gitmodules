@@ -1,0 +1,3 @@
+[submodule "roles/python2_install"]
+	path = roles/python2_install
+	url = git@github.com:senorsmile/ansible_python2_install.git
