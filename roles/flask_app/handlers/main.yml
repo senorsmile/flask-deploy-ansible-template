@@ -1,1 +1,6 @@
 ---
+- name: Restart flask_app
+  become: True
+  supervisorctl:
+    name: flask_app
+    state: restarted
